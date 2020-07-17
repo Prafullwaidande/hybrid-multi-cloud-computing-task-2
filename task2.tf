@@ -143,7 +143,7 @@ resource "null_resource" "nullremote1" {
       "sudo mount -t efs ${aws_efs_file_system.myefs.id}:/ /var/www/html",
       "sudo echo '${aws_efs_file_system.myefs.id}:/ /var/www/html efs defaults,_netdev 0 0' >> /etc/fstab",
       "sudo rm -rf /var/www/html/*",
-      "sudo git clone https://github.com/onkar1-git/AWS_EFS.git /var/www/html/"
+      "sudo git clone https://github.com/Prafullwaidande/hybrid-multi-cloud-computing-task-2.git /var/www/html/"
     ]
   }
 }
