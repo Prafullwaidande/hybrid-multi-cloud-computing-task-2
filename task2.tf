@@ -6,7 +6,7 @@ resource "aws_vpc" "main" {
   instance_tenancy = "default"
 
   tags = {
-    Name = "myvpc1"
+    Name = "vpc-prafull"
   }
 }
 resource "aws_subnet" "main1" {
@@ -17,14 +17,14 @@ resource "aws_subnet" "main1" {
 
 
   tags = {
-    Name = "subnet1"
+    Name = "subnet"
   }
 }
 resource "aws_internet_gateway" "gw" {
   vpc_id = "${aws_vpc.main.id}"
 
   tags = {
-    Name = "mygw1"
+    Name = "gateway"
   }
 }
 resource "aws_route_table" "r" {
@@ -36,7 +36,7 @@ resource "aws_route_table" "r" {
   }
 
   tags = {
-    Name = "rt1"
+    Name = "route-table"
   }
 }
 resource "aws_route_table_association" "a" {
@@ -44,10 +44,10 @@ resource "aws_route_table_association" "a" {
   route_table_id = aws_route_table.r.id
 }
   resource "aws_s3_bucket" "b" {
-  bucket = "onkar1bucket"
+  bucket = "Prafull-bucket"
   acl    = "public-read"
  tags = {
-  Name = "lwbucket"
+  Name = "mybucket"
 }
 
 }
@@ -94,7 +94,7 @@ ingress {
   }
 
   tags = {
-    Name = "NFSgr1"
+    Name = "NFS-groups"
   }
 }
 resource "aws_efs_file_system" "myefs" {
@@ -102,7 +102,7 @@ resource "aws_efs_file_system" "myefs" {
   performance_mode = "generalPurpose"
 
   tags = {
-    Name = "myefs1"
+    Name = "efs-prafull"
   }
 }
 
@@ -120,7 +120,7 @@ resource "aws_instance" "webserver" {
   vpc_security_group_ids = [ aws_security_group.sg1.id ]
   
   tags = {
-    Name = "Webos"
+    Name = "Webserver-os"
   }
 }
 resource "null_resource" "nullremote1" {
