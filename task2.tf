@@ -1,7 +1,7 @@
 provider "aws" {
   region  = "ap-south-1"
 }
-resource "aws_vpc" "main" {
+resource "aws_vpc" "vpcmain" {
   cidr_block       = "192.168.0.0/16"
   instance_tenancy = "default"
 
@@ -9,8 +9,8 @@ resource "aws_vpc" "main" {
     Name = "vpc-prafull"
   }
 }
-resource "aws_subnet" "main1" {
-  vpc_id     = "${aws_vpc.main.id}"
+resource "aws_subnet" "awsmain" {
+  vpc_id     = "${aws_vpc.vpcmain.id}"
   cidr_block = "192.168.0.0/24"
   map_public_ip_on_launch = true
   availability_zone = "ap-south-1a"
@@ -21,14 +21,14 @@ resource "aws_subnet" "main1" {
   }
 }
 resource "aws_internet_gateway" "gw" {
-  vpc_id = "${aws_vpc.main.id}"
+  vpc_id = "${aws_vpc.vpcmain.id}"
 
   tags = {
     Name = "gateway"
   }
 }
-resource "aws_route_table" "r" {
-  vpc_id = "${aws_vpc.main.id}"
+resource "aws_route_table" "route" {
+  vpc_id = "${aws_vpc.vpcmain.id}"
 
   route {
     cidr_block = "0.0.0.0/0"
@@ -39,12 +39,12 @@ resource "aws_route_table" "r" {
     Name = "route-table"
   }
 }
-resource "aws_route_table_association" "a" {
-  subnet_id      = aws_subnet.main1.id
-  route_table_id = aws_route_table.r.id
+resource "aws_route_table_association" "first" {
+  subnet_id      = aws_subnet.awsmain.id
+  route_table_id = aws_route_table.route.id
 }
-  resource "aws_s3_bucket" "b" {
-  bucket = "Prafull-bucket"
+  resource "aws_s3_bucket" "second" {
+  bucket = "prafull-bucket"
   acl    = "public-read"
  tags = {
   Name = "mybucket"
@@ -52,18 +52,18 @@ resource "aws_route_table_association" "a" {
 
 }
 resource "aws_s3_bucket_object" "object" {
-  bucket = aws_s3_bucket.b.id
+  bucket = aws_s3_bucket.second.id
   key    = "red.jpg"
 }
 
 locals{
-  s3_origin_id = "aws_s3_bucket.b.id"
-  depends_on = [aws_s3_bucket.b]
+  s3_origin_id = "aws_s3_bucket.second.id"
+  depends_on = [aws_s3_bucket.second]
 }
 resource "aws_security_group" "sg1" {
   name        = "securitygr1"
   description = "Allow NFS"
-  vpc_id      = "${aws_vpc.main.id}"
+  vpc_id      = "${aws_vpc.vpcmain.id}"
 
   ingress {
     description = "ssh"
@@ -94,7 +94,7 @@ ingress {
   }
 
   tags = {
-    Name = "NFS-groups"
+    Name = "nfs-groups"
   }
 }
 resource "aws_efs_file_system" "myefs" {
@@ -108,19 +108,19 @@ resource "aws_efs_file_system" "myefs" {
 
 resource "aws_efs_mount_target" "myefs-mount" {
   file_system_id = aws_efs_file_system.myefs.id
-  subnet_id = aws_subnet.main1.id
+  subnet_id = aws_subnet.awsmain.id
   security_groups = [ aws_security_group.sg1.id ]
 }
 resource "aws_instance" "webserver" {
   depends_on = [ aws_efs_mount_target.myefs-mount ]
-  ami = "ami-0447a12f28fddb066"
+  ami = "ami-0732b62d310b80e97"
   instance_type = "t2.micro"
   key_name = "akash"
-  subnet_id = aws_subnet.main1.id
+  subnet_id = aws_subnet.awsmain.id
   vpc_security_group_ids = [ aws_security_group.sg1.id ]
   
   tags = {
-    Name = "Webserver-os"
+    Name = "webserver-os"
   }
 }
 resource "null_resource" "nullremote1" {
@@ -156,7 +156,7 @@ output "origin_access_identity" {
 data "aws_iam_policy_document" "policy" {
   statement {
     actions   = ["s3:GetObject"]
-    resources = ["${aws_s3_bucket.b.arn}/*"]
+    resources = ["${aws_s3_bucket.second.arn}/*"]
     principals {
       type        = "AWS"
       identifiers = ["${aws_cloudfront_origin_access_identity.identity.iam_arn}"]
@@ -164,24 +164,24 @@ data "aws_iam_policy_document" "policy" {
   }
   statement {
     actions   = ["s3:ListBucket"]
-    resources = ["${aws_s3_bucket.b.arn}"]
+    resources = ["${aws_s3_bucket.second.arn}"]
     principals {
       type        = "AWS"
       identifiers = ["${aws_cloudfront_origin_access_identity.identity.iam_arn}"]
     }
   }
 }
-resource "aws_s3_bucket_policy" "policy1" {
-  bucket = aws_s3_bucket.b.id
+resource "aws_s3_bucket_policy" "first-policy" {
+  bucket = aws_s3_bucket.second.id
   policy = data.aws_iam_policy_document.policy.json
 }
 
-resource "aws_cloudfront_distribution" "cloudfront1" {
+resource "aws_cloudfront_distribution" "cloudfront" {
     enabled             = true
     is_ipv6_enabled     = true
     wait_for_deployment = false
     origin {
-        domain_name = "${aws_s3_bucket.b.bucket_regional_domain_name}"
+        domain_name = "${aws_s3_bucket.second.bucket_regional_domain_name}"
         origin_id   = local.s3_origin_id
     s3_origin_config {
        origin_access_identity = "${aws_cloudfront_origin_access_identity.identity.cloudfront_access_identity_path}" 
