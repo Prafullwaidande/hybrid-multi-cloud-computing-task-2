@@ -1,6 +1,11 @@
+#PROVIDER
+
 provider "aws" {
   region  = "ap-south-1"
 }
+
+#VPC
+
 resource "aws_vpc" "vpcmain" {
   cidr_block       = "192.168.0.0/16"
   instance_tenancy = "default"
@@ -9,6 +14,9 @@ resource "aws_vpc" "vpcmain" {
     Name = "vpc-prafull"
   }
 }
+
+#SUBNET
+
 resource "aws_subnet" "awsmain" {
   vpc_id     = "${aws_vpc.vpcmain.id}"
   cidr_block = "192.168.0.0/24"
@@ -20,6 +28,9 @@ resource "aws_subnet" "awsmain" {
     Name = "subnet"
   }
 }
+
+#INTERNET_GATEWAY
+
 resource "aws_internet_gateway" "gw" {
   vpc_id = "${aws_vpc.vpcmain.id}"
 
@@ -43,6 +54,9 @@ resource "aws_route_table_association" "first" {
   subnet_id      = aws_subnet.awsmain.id
   route_table_id = aws_route_table.route.id
 }
+
+#S3_BUCKET
+
   resource "aws_s3_bucket" "second" {
   bucket = "prafull-bucket"
   acl    = "public-read"
@@ -60,6 +74,9 @@ locals{
   s3_origin_id = "aws_s3_bucket.second.id"
   depends_on = [aws_s3_bucket.second]
 }
+
+#NFS
+
 resource "aws_security_group" "sg1" {
   name        = "securitygr1"
   description = "Allow NFS"
@@ -97,6 +114,9 @@ ingress {
     Name = "nfs-groups"
   }
 }
+
+#EFS
+
 resource "aws_efs_file_system" "myefs" {
   creation_token = "myefs"
   performance_mode = "generalPurpose"
@@ -111,6 +131,9 @@ resource "aws_efs_mount_target" "myefs-mount" {
   subnet_id = aws_subnet.awsmain.id
   security_groups = [ aws_security_group.sg1.id ]
 }
+
+#WEBSERVER_INSTANCE
+
 resource "aws_instance" "webserver" {
   depends_on = [ aws_efs_mount_target.myefs-mount ]
   ami = "ami-0732b62d310b80e97"
@@ -171,6 +194,9 @@ data "aws_iam_policy_document" "policy" {
     }
   }
 }
+
+#POLICY
+
 resource "aws_s3_bucket_policy" "first-policy" {
   bucket = aws_s3_bucket.second.id
   policy = data.aws_iam_policy_document.policy.json
